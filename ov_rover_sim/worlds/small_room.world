@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<!-- Small 20x20m textured room. Light on CPU: primitives only, 1 sun, no shadows.
+     Walls/boxes use different Gazebo materials so VIO has features to track.
+     Blank walls would kill OpenVINS. -->
+<sdf version="1.6">
+  <world name="small_room">
+    <physics name="default" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <scene>
+      <ambient>0.7 0.7 0.7 1.0</ambient>
+      <background>0.4 0.4 0.4 1.0</background>
+      <shadows>false</shadows>
+    </scene>
+
+    <light name="sun" type="directional">
+      <cast_shadows>false</cast_shadows>
+      <pose>5 -5 10 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.4 0.4 -1</direction>
+    </light>
+
+    <model name="ground">
+      <static>true</static>
+      <link name="link">
+        <collision name="c"><geometry><plane><normal>0 0 1</normal><size>20 20</size></plane></geometry></collision>
+        <visual name="v"><geometry><plane><normal>0 0 1</normal><size>20 20</size></plane></geometry>
+          <material><script><name>Gazebo/WoodFloor</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 4 walls, each a different texture -->
+    <model name="wall_north">
+      <static>true</static><pose>0 10 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>20 0.2 3</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>20 0.2 3</size></box></geometry>
+          <material><script><name>Gazebo/Bricks</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual>
+      </link>
+    </model>
+    <model name="wall_south">
+      <static>true</static><pose>0 -10 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>20 0.2 3</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>20 0.2 3</size></box></geometry>
+          <material><script><name>Gazebo/PaintedWall</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual>
+      </link>
+    </model>
+    <model name="wall_east">
+      <static>true</static><pose>10 0 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 20 3</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 20 3</size></box></geometry>
+          <material><script><name>Gazebo/Wood</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual>
+      </link>
+    </model>
+    <model name="wall_west">
+      <static>true</static><pose>-10 0 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 20 3</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 20 3</size></box></geometry>
+          <material><script><name>Gazebo/CeilingTiled</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual>
+      </link>
+    </model>
+
+    <!-- scattered obstacle boxes for parallax + features -->
+    <model name="box1"><static>true</static><pose>3 2 0.5 0 0 0.4</pose>
+      <link name="l"><collision name="c"><geometry><box><size>1 1 1</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>1 1 1</size></box></geometry>
+          <material><script><name>Gazebo/WoodPallet</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="box2"><static>true</static><pose>-3 4 0.4 0 0 -0.3</pose>
+      <link name="l"><collision name="c"><geometry><box><size>0.8 0.8 0.8</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.8 0.8 0.8</size></box></geometry>
+          <material><script><name>Gazebo/Red</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="box3"><static>true</static><pose>4 -3 0.6 0 0 0.2</pose>
+      <link name="l"><collision name="c"><geometry><box><size>1.2 0.6 1.2</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>1.2 0.6 1.2</size></box></geometry>
+          <material><script><name>Gazebo/Blue</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="box4"><static>true</static><pose>-4 -2 0.35 0 0 0.7</pose>
+      <link name="l"><collision name="c"><geometry><box><size>0.7 0.7 0.7</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.7 0.7 0.7</size></box></geometry>
+          <material><script><name>Gazebo/Green</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="box5"><static>true</static><pose>0 6 0.75 0 0 0</pose>
+      <link name="l"><collision name="c"><geometry><box><size>1.5 0.5 1.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>1.5 0.5 1.5</size></box></geometry>
+          <material><script><name>Gazebo/Yellow</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="box6"><static>true</static><pose>-1 -6 0.5 0 0 0.1</pose>
+      <link name="l"><collision name="c"><geometry><box><size>1 1 1</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>1 1 1</size></box></geometry>
+          <material><script><name>Gazebo/Orange</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="cyl1"><static>true</static><pose>6 0 0.5 0 0 0</pose>
+      <link name="l"><collision name="c"><geometry><cylinder><radius>0.4</radius><length>1.0</length></cylinder></geometry></collision>
+        <visual name="v"><geometry><cylinder><radius>0.4</radius><length>1.0</length></cylinder></geometry>
+          <material><script><name>Gazebo/Purple</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+
+    <!-- high-contrast poster boards on walls (VIO needs these) -->
+    <model name="poster1"><static>true</static><pose>0 9.88 1.6 0 0 0</pose>
+      <link name="l"><visual name="v"><geometry><box><size>2.0 0.02 1.2</size></box></geometry>
+        <material><script><name>Gazebo/Steps</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="poster2"><static>true</static><pose>9.88 -2 1.6 0 0 1.5708</pose>
+      <link name="l"><visual name="v"><geometry><box><size>2.0 0.02 1.2</size></box></geometry>
+        <material><script><name>Gazebo/Road</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="poster3"><static>true</static><pose>-5 -9.88 1.6 0 0 0</pose>
+      <link name="l"><visual name="v"><geometry><box><size>1.6 0.02 1.0</size></box></geometry>
+        <material><script><name>Gazebo/Residential</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+  </world>
+</sdf>
