@@ -1,0 +1,31 @@
+%YAML:1.0
+# Stereo rig matching models/ov_rover/model.sdf:
+# 640x400 @20Hz, hfov 90deg -> fx=fy=320, cu=320, cv=200, no distortion.
+# Baseline 0.11m along Y. Cam pose in IMU frame: [0.22, +/-0.055, 0.12], R=I (refined online).
+
+cam0:
+  T_imu_cam:
+    - [1.0, 0.0, 0.0, 0.22]
+    - [0.0, 1.0, 0.0, 0.055]
+    - [0.0, 0.0, 1.0, 0.12]
+    - [0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: [1]
+  camera_model: pinhole
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: radtan
+  intrinsics: [320.0, 320.0, 320.0, 200.0]
+  resolution: [640, 400]
+  rostopic: /cam0/image_raw
+cam1:
+  T_imu_cam:
+    - [1.0, 0.0, 0.0, 0.22]
+    - [0.0, 1.0, 0.0, -0.055]
+    - [0.0, 0.0, 1.0, 0.12]
+    - [0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: [0]
+  camera_model: pinhole
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: radtan
+  intrinsics: [320.0, 320.0, 320.0, 200.0]
+  resolution: [640, 400]
+  rostopic: /cam1/image_raw
