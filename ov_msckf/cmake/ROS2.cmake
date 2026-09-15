@@ -17,7 +17,7 @@ find_package(ov_init REQUIRED)
 # Describe ROS project
 option(ENABLE_ROS "Enable or disable building with ROS (if it is found)" ON)
 if (NOT ENABLE_ROS)
-    message(FATAL_ERROR "Build with ROS1.cmake if you don't have ROS.")
+    message(FATAL_ERROR "ROS 2 is required to build this package, ENABLE_ROS cannot be OFF.")
 endif ()
 add_definitions(-DROS_AVAILABLE=2)
 
