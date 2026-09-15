@@ -8,7 +8,7 @@ find_package(ov_core REQUIRED)
 # Describe ROS project
 option(ENABLE_ROS "Enable or disable building with ROS (if it is found)" ON)
 if (NOT ENABLE_ROS)
-    message(FATAL_ERROR "Build with ROS1.cmake if you don't have ROS.")
+    message(FATAL_ERROR "ROS 2 is required to build this package, ENABLE_ROS cannot be OFF.")
 endif ()
 add_definitions(-DROS_AVAILABLE=2)
 
@@ -57,14 +57,6 @@ ament_export_libraries(ov_eval_lib)
 ##################################################
 # Make binary files!
 ##################################################
-
-# TODO: UPGRADE THIS TO ROS2 AS ANOTHER FILE!!
-#if (catkin_FOUND AND ENABLE_ROS)
-#    add_executable(pose_to_file src/pose_to_file.cpp)
-#    target_link_libraries(pose_to_file ov_eval_lib ${thirdparty_libraries})
-#    add_executable(live_align_trajectory src/live_align_trajectory.cpp)
-#    target_link_libraries(live_align_trajectory ov_eval_lib ${thirdparty_libraries})
-#endif ()
 
 add_executable(format_converter src/format_converter.cpp)
 ament_target_dependencies(format_converter rclcpp ov_core)
@@ -115,17 +107,6 @@ add_executable(plot_trajectories src/plot_trajectories.cpp)
 ament_target_dependencies(plot_trajectories rclcpp ov_core)
 target_link_libraries(plot_trajectories ov_eval_lib ${thirdparty_libraries})
 install(TARGETS plot_trajectories DESTINATION lib/${PROJECT_NAME})
-
-
-##################################################
-# Python scripts!
-##################################################
-
-# TODO: UPGRADE THIS TO ROS2 AS ANOTHER FILE!!
-#if (catkin_FOUND AND ENABLE_ROS)
-#    catkin_install_python(PROGRAMS python/pid_ros.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-#    catkin_install_python(PROGRAMS python/pid_sys.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-#endif ()
 
 
 # finally define this as the package
