@@ -88,6 +88,39 @@ fi
 LAUNCH_CMD="ros2 launch ov_rover_sim rover_sim.launch.py auto:=$AUTO rviz:=$RVIZ gui:=$GUI"
 TELEOP_CMD="ros2 run ov_rover_sim key_teleop.py"
 
+# Stale-server guard: a leftover gzserver fights the new run over the
+# gazebo master port and ROS topics. Refuse to start dirty.
+if pgrep -x gzserver > /dev/null; then
+  echo "WARNING: a gzserver process is already running." >&2
+  echo "It would fight this run over the gazebo port and ROS topics." >&2
+  echo "Inspect: pgrep -af 'gzserver|auto_loop|key_teleop' ; then pkill -x gzserver" >&2
+  read -r -p "Kill leftovers and continue? [y/N] " yn
+  case "$yn" in
+    [Yy]*) pkill -x gzserver; pkill -f "Xvfb :[0-9]" 2>/dev/null; sleep 2 ;;
+    *) echo "Aborted."; exit 1 ;;
+  esac
+fi
+
+# Headless cameras need an X server to render into. With no display,
+# Gazebo camera sensors silently produce nothing, so start Xvfb.
+if [ "$GUI" = false ] && [ -z "${DISPLAY:-}" ]; then
+  if command -v Xvfb > /dev/null; then
+    XVFB_DISP=""
+    for d in $(seq 99 130); do
+      if [ ! -e "/tmp/.X${d}-lock" ]; then XVFB_DISP=$d; break; fi
+    done
+    if [ -n "$XVFB_DISP" ]; then
+      Xvfb ":$XVFB_DISP" -screen 0 1280x1024x24 &
+      export DISPLAY=":$XVFB_DISP"
+      echo "Started Xvfb on $DISPLAY for headless camera rendering."
+    else
+      echo "WARNING: no free X display; cameras will not render headless." >&2
+    fi
+  else
+    echo "WARNING: no X server and no Xvfb; cameras will not render headless." >&2
+  fi
+fi
+
 echo "WS:     $WS"
 echo "Launch: $LAUNCH_CMD"
 echo "Teleop: $TELEOP (exclusive: auto is off while teleop runs)"
