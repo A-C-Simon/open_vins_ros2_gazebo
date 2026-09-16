@@ -85,6 +85,43 @@ if [ "$DRYRUN" = true ]; then
   exit 0
 fi
 
+# Pre-flight: /cmd_vel must be free. A foreign writer (forgotten keyboard
+# node, another sim in the same ROS domain) wins intermittently and the
+# rover stutters or freezes while everything looks fine.
+echo "Pre-flight: checking /cmd_vel is free..."
+BUSY=$(python3 -c "
+import rclpy
+from rclpy.node import Node
+rclpy.init()
+n = Node('preflight')
+import time
+found = set()
+t0 = time.time()
+while time.time() - t0 < 4:
+    rclpy.spin_once(n, timeout_sec=0.2)
+    try:
+        for i in n.get_publishers_info_by_topic('/cmd_vel'):
+            if i.node_name not in ('preflight', '_NODE_NAME_UNKNOWN_'):
+                found.add(i.node_name)
+    except Exception:
+        pass
+n.destroy_node()
+rclpy.shutdown()
+print(' '.join(sorted(found)))
+" 2>/dev/null)
+if [ -n "$BUSY" ]; then
+  echo "WARNING: /cmd_vel already has publishers: $BUSY" >&2
+  echo "Another session (or a stale keyboard/auto node) owns the drive topic." >&2
+  echo "Kill it (or give each setup its own ROS_DOMAIN_ID) or the rover will fight it." >&2
+  read -r -p "Continue anyway? [y/N] " yn
+  case "$yn" in
+    [Yy]*) ;;
+    *) echo "Aborted."; exit 1 ;;
+  esac
+else
+  echo "/cmd_vel is free."
+fi
+
 cleanup() {
   echo ""
   echo "Shutting down gazebo test..."
