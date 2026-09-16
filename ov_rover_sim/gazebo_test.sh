@@ -176,8 +176,18 @@ fi
 
 set -m # job control, so `jobs -p` also works when stdin is not a terminal
 cleanup() {
+  # run once (the EXIT trap would otherwise repeat the INT trap's work)
+  [ -n "${CLEANED:-}" ] && return 0
+  CLEANED=1
   echo ""
   echo "Shutting down gazebo test..."
+  # precise kill first: the whole launch process group. That takes down
+  # ros2 launch itself plus robot_state_publisher and every node it
+  # started, without touching anyone else's processes.
+  if [ -n "${LAUNCH_PID:-}" ]; then
+    LAUNCH_PGID=$(ps -o pgid= -p "$LAUNCH_PID" 2>/dev/null | tr -d ' ')
+    [ -n "$LAUNCH_PGID" ] && kill -- "-$LAUNCH_PGID" 2>/dev/null || true
+  fi
   jobs -p | xargs -r kill 2>/dev/null || true
   # rviz2 included: Ctrl+C must take down everything, including separately started rviz2.
   # Also kill stale drivers/teleops: a forgotten keyboard node spamming zero
@@ -202,7 +212,7 @@ if [ "$TELEOP" = true ]; then
   echo "Arrow-key teleop active (exclusive /cmd_vel owner)."
   echo "Focus this terminal and use arrow keys. Ctrl+C quits everything."
   sleep 3
-  # foreground so keyboard input works; auto yields via teleop_timeout
+  # foreground so keyboard input works (exclusive mode: auto is off)
   # shellcheck disable=SC2086
   $TELEOP_CMD
 else
