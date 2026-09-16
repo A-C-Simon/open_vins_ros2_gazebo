@@ -89,16 +89,13 @@ LAUNCH_CMD="ros2 launch ov_rover_sim rover_sim.launch.py auto:=$AUTO rviz:=$RVIZ
 TELEOP_CMD="ros2 run ov_rover_sim key_teleop.py"
 
 # Stale-server guard: a leftover gzserver fights the new run over the
-# gazebo master port and ROS topics. Refuse to start dirty.
+# gazebo master port and ROS topics. Refuse to start dirty (never kill
+# other sessions' servers for them; print how instead).
 if pgrep -x gzserver > /dev/null; then
-  echo "WARNING: a gzserver process is already running." >&2
-  echo "It would fight this run over the gazebo port and ROS topics." >&2
-  echo "Inspect: pgrep -af 'gzserver|auto_loop|key_teleop' ; then pkill -x gzserver" >&2
-  read -r -p "Kill leftovers and continue? [y/N] " yn
-  case "$yn" in
-    [Yy]*) pkill -x gzserver; pkill -f "Xvfb :[0-9]" 2>/dev/null; sleep 2 ;;
-    *) echo "Aborted."; exit 1 ;;
-  esac
+  echo "ERROR: a gzserver process is already running - refusing dirty start." >&2
+  echo "Inspect: pgrep -af gzserver" >&2
+  echo "If it is a leftover, kill it yourself: pkill -x gzserver" >&2
+  exit 1
 fi
 
 # Headless cameras need an X server to render into. With no display,
@@ -189,11 +186,13 @@ cleanup() {
     [ -n "$LAUNCH_PGID" ] && kill -- "-$LAUNCH_PGID" 2>/dev/null || true
   fi
   jobs -p | xargs -r kill 2>/dev/null || true
-  # rviz2 included: Ctrl+C must take down everything, including separately started rviz2.
-  # Also kill stale drivers/teleops: a forgotten keyboard node spamming zero
+  # Kill only OUR processes (our world file / our node scripts). Never use
+  # broad patterns here: another session's servers share this machine and
+  # killing them (or their X servers) breaks that session's cameras/sim.
+  # Stale drivers/teleops of ours: a forgotten keyboard node spamming zero
   # /cmd_vel vetoes every other driver on this ROS domain (last-writer-wins).
-  pkill -f "gzserver|gzclient|rviz2" 2>/dev/null || true
-  pkill -f "auto_loop\.py|key_teleop\.py|teleop_twist_keyboard" 2>/dev/null || true
+  pkill -f "auto_loop\.py|key_teleop\.py" 2>/dev/null || true
+  pkill -f "rviz2.*\.rviz" 2>/dev/null || true
   # gzserver ignores SIGTERM: escalate what is still ours, then SIGKILL it.
   sleep 2
   [ -n "${XVFB_PID:-}" ] && kill "$XVFB_PID" 2>/dev/null || true
