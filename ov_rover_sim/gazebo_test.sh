@@ -56,6 +56,19 @@ done
 WS="${WS:-/home/ac/ros2_ws}"
 cd "$WS"
 
+# Drive traffic lives on its own ROS domain by default. The default domain
+# on this machine is shared by every sim and keyboard node, and any stray
+# /cmd_vel writer there (even an idle keyboard spamming zeros) wins
+# intermittently and freezes the rover. Override with e.g.
+# ROVER_DOMAIN_ID=8 ./gazebo_test.sh to rejoin the default domain.
+if [ -z "${ROVER_DOMAIN_ID:-}" ]; then
+  ROVER_DOMAIN_ID=42
+fi
+export ROS_DOMAIN_ID="$ROVER_DOMAIN_ID"
+echo "ROS_DOMAIN_ID=$ROS_DOMAIN_ID (rover traffic isolated; same export is needed"
+echo "in any other terminal that talks to the rover, e.g.:"
+echo "  export ROS_DOMAIN_ID=$ROS_DOMAIN_ID)"
+
 source /opt/ros/humble/setup.bash
 if [ ! -f "$WS/install/setup.bash" ]; then
   echo "ERROR: $WS/install/setup.bash missing. Build first." >&2
