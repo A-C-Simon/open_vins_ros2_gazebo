@@ -24,6 +24,10 @@ class AutoLoop(Node):
         self.phase = 'forward'
         self.t0 = self.get_clock().now()
         self.timer = self.create_timer(0.05, self.tick)
+        # Slew-limited command shaping: step changes excite chassis
+        # oscillation, so ramp toward phase targets instead of jumping.
+        self.v = 0.0
+        self.w = 0.0
 
     def auto_enabled(self):
         # ros2 launch passes parameters as strings ('true'/'false'),
@@ -46,17 +50,24 @@ class AutoLoop(Node):
             return
         now = self.get_clock().now()
         dt = (now - self.t0).nanoseconds / 1e9
-        msg = Twist()
         if self.phase == 'forward':
-            msg.linear.x = self.get_parameter('linear').value
+            tv, tw = self.get_parameter('linear').value, 0.0
             if dt > self.get_parameter('forward_time').value:
                 self.phase = 'turn'
                 self.t0 = now
         else:
-            msg.angular.z = self.get_parameter('angular').value
+            tv, tw = 0.0, self.get_parameter('angular').value
             if dt > self.get_parameter('turn_time').value:
                 self.phase = 'forward'
                 self.t0 = now
+        step = 0.05  # timer period: slew toward targets, never step
+        for attr, tgt, rate in (('v', tv, 0.8), ('w', tw, 1.5)):
+            cur = getattr(self, attr)
+            dv = tgt - cur
+            lim = rate * step
+            setattr(self, attr, cur + max(-lim, min(lim, dv)))
+        msg = Twist()
+        msg.linear.x, msg.angular.z = self.v, self.w
         self.pub.publish(msg)
 
 
