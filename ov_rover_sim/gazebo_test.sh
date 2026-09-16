@@ -103,7 +103,12 @@ fi
 
 # Headless cameras need an X server to render into. With no display,
 # Gazebo camera sensors silently produce nothing, so start Xvfb.
-if [ "$GUI" = false ] && [ -z "${DISPLAY:-}" ]; then
+have_display() {
+  [ -n "${DISPLAY:-}" ] || return 1
+  command -v xdpyinfo > /dev/null 2>&1 || return 0
+  xdpyinfo -display "$DISPLAY" > /dev/null 2>&1
+}
+if [ "$GUI" = false ] && ! have_display; then
   if command -v Xvfb > /dev/null; then
     XVFB_DISP=""
     for d in $(seq 99 130); do
@@ -111,8 +116,9 @@ if [ "$GUI" = false ] && [ -z "${DISPLAY:-}" ]; then
     done
     if [ -n "$XVFB_DISP" ]; then
       Xvfb ":$XVFB_DISP" -screen 0 1280x1024x24 &
+      XVFB_PID=$!
       export DISPLAY=":$XVFB_DISP"
-      echo "Started Xvfb on $DISPLAY for headless camera rendering."
+      echo "Started Xvfb on $DISPLAY (pid $XVFB_PID) for headless camera rendering."
     else
       echo "WARNING: no free X display; cameras will not render headless." >&2
     fi
@@ -168,6 +174,7 @@ else
   echo "/cmd_vel is free."
 fi
 
+set -m # job control, so `jobs -p` also works when stdin is not a terminal
 cleanup() {
   echo ""
   echo "Shutting down gazebo test..."
@@ -177,6 +184,12 @@ cleanup() {
   # /cmd_vel vetoes every other driver on this ROS domain (last-writer-wins).
   pkill -f "gzserver|gzclient|rviz2" 2>/dev/null || true
   pkill -f "auto_loop\.py|key_teleop\.py|teleop_twist_keyboard" 2>/dev/null || true
+  # gzserver ignores SIGTERM: escalate what is still ours, then SIGKILL it.
+  sleep 2
+  [ -n "${XVFB_PID:-}" ] && kill "$XVFB_PID" 2>/dev/null || true
+  pkill -INT -f "small_room.world" 2>/dev/null || true
+  sleep 2
+  pkill -KILL -f "small_room.world" 2>/dev/null || true
 }
 trap cleanup INT TERM EXIT
 
