@@ -105,22 +105,34 @@ have_display() {
   command -v xdpyinfo > /dev/null 2>&1 || return 0
   xdpyinfo -display "$DISPLAY" > /dev/null 2>&1
 }
-if [ "$GUI" = false ] && ! have_display; then
-  if command -v Xvfb > /dev/null; then
-    XVFB_DISP=""
-    for d in $(seq 99 130); do
-      if [ ! -e "/tmp/.X${d}-lock" ]; then XVFB_DISP=$d; break; fi
-    done
-    if [ -n "$XVFB_DISP" ]; then
-      Xvfb ":$XVFB_DISP" -screen 0 1280x1024x24 &
-      XVFB_PID=$!
-      export DISPLAY=":$XVFB_DISP"
-      echo "Started Xvfb on $DISPLAY (pid $XVFB_PID) for headless camera rendering."
-    else
-      echo "WARNING: no free X display; cameras will not render headless." >&2
+start_xvfb() {
+  # A display whose lock exists but has no live server behind it is stale
+  # (crashed runs leave them); only a live server blocks reuse.
+  local d
+  for d in $(seq 99 130); do
+    if [ -e "/tmp/.X${d}-lock" ] && pgrep -f "Xvfb :${d} " > /dev/null; then
+      continue
     fi
+    rm -f "/tmp/.X${d}-lock" "/tmp/.X11-unix/X${d}"
+    Xvfb ":$d" -screen 0 1280x1024x24 &
+    XVFB_PID=$!
+    sleep 1
+    if kill -0 "$XVFB_PID" 2>/dev/null && xdpyinfo -display ":$d" > /dev/null 2>&1; then
+      export DISPLAY=":$d"
+      echo "Started Xvfb on $DISPLAY (pid $XVFB_PID) for headless camera rendering."
+      return 0
+    fi
+    kill "$XVFB_PID" 2>/dev/null || true
+    unset XVFB_PID
+  done
+  echo "WARNING: no working X display; cameras will not render headless." >&2
+  return 1
+}
+if [ "$GUI" = false ] && ! have_display; then
+  if command -v Xvfb > /dev/null && command -v xdpyinfo > /dev/null; then
+    start_xvfb || true
   else
-    echo "WARNING: no X server and no Xvfb; cameras will not render headless." >&2
+    echo "WARNING: no X server and no Xvfb/xdpyinfo; cameras will not render headless." >&2
   fi
 fi
 
