@@ -11,7 +11,9 @@
     </physics>
 
     <scene>
-      <ambient>0.7 0.7 0.7 1.0</ambient>
+      <!-- Kept moderate on purpose: high ambient plus specular blew the
+           floor out to white at grazing angles (zero corners). -->
+      <ambient>0.4 0.4 0.4 1.0</ambient>
       <background>0.4 0.4 0.4 1.0</background>
       <shadows>false</shadows>
     </scene>
@@ -19,8 +21,8 @@
     <light name="sun" type="directional">
       <cast_shadows>false</cast_shadows>
       <pose>5 -5 10 0 0 0</pose>
-      <diffuse>1 1 1 1</diffuse>
-      <specular>0.2 0.2 0.2 1</specular>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.0 0.0 0.0 1</specular>
       <direction>-0.4 0.4 -1</direction>
     </light>
 
@@ -31,7 +33,10 @@
           <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
         </collision>
         <visual name="v"><geometry><plane><normal>0 0 1</normal><size>20 20</size></plane></geometry>
-          <material><script><name>Gazebo/WoodFloor</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material>
+          <!-- Mid-tone busy texture on purpose (a light grid blew out to
+               white under the room lights and gave zero corners): the
+               floor fills the bottom half of every frame at close range. -->
+          <material><script><name>Gazebo/Bricks</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material>
         </visual>
       </link>
     </model>
@@ -71,34 +76,54 @@
     </model>
 
     <!-- scattered obstacle boxes for parallax + features -->
-    <model name="box1"><static>true</static><pose>3 2 0.5 0 0 0.4</pose>
+    <!-- NOTE: the auto square loop runs x 0..2, y 0..2, so keep this
+         quadrant clear. box1 used to sit at (3,2), 0.4 m off the loop
+         corner, and the rover clipped it and toppled. -->
+    <model name="box1"><static>true</static><pose>5 3.5 0.5 0 0 0.4</pose>
       <link name="l"><collision name="c"><geometry><box><size>1 1 1</size></box></geometry></collision>
         <visual name="v"><geometry><box><size>1 1 1</size></box></geometry>
           <material><script><name>Gazebo/WoodPallet</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
     <model name="box2"><static>true</static><pose>-3 4 0.4 0 0 -0.3</pose>
       <link name="l"><collision name="c"><geometry><box><size>0.8 0.8 0.8</size></box></geometry></collision>
         <visual name="v"><geometry><box><size>0.8 0.8 0.8</size></box></geometry>
-          <material><script><name>Gazebo/Red</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+          <material><script><name>Gazebo/Steps</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
     <model name="box3"><static>true</static><pose>4 -3 0.6 0 0 0.2</pose>
       <link name="l"><collision name="c"><geometry><box><size>1.2 0.6 1.2</size></box></geometry></collision>
         <visual name="v"><geometry><box><size>1.2 0.6 1.2</size></box></geometry>
-          <material><script><name>Gazebo/Blue</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+          <material><script><name>Gazebo/CeilingTiled</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
     <model name="box4"><static>true</static><pose>-4 -2 0.35 0 0 0.7</pose>
       <link name="l"><collision name="c"><geometry><box><size>0.7 0.7 0.7</size></box></geometry></collision>
         <visual name="v"><geometry><box><size>0.7 0.7 0.7</size></box></geometry>
-          <material><script><name>Gazebo/Green</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+          <material><script><name>Gazebo/Road</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
     <model name="box5"><static>true</static><pose>0 6 0.75 0 0 0</pose>
       <link name="l"><collision name="c"><geometry><box><size>1.5 0.5 1.5</size></box></geometry></collision>
         <visual name="v"><geometry><box><size>1.5 0.5 1.5</size></box></geometry>
-          <material><script><name>Gazebo/Yellow</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+          <material><script><name>Gazebo/Bricks</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
     <model name="box6"><static>true</static><pose>-1 -6 0.5 0 0 0.1</pose>
       <link name="l"><collision name="c"><geometry><box><size>1 1 1</size></box></geometry></collision>
         <visual name="v"><geometry><box><size>1 1 1</size></box></geometry>
-          <material><script><name>Gazebo/Orange</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+          <material><script><name>Gazebo/Wood</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
     <model name="cyl1"><static>true</static><pose>6 0 0.5 0 0 0</pose>
       <link name="l"><collision name="c"><geometry><cylinder><radius>0.4</radius><length>1.0</length></cylinder></geometry></collision>
         <visual name="v"><geometry><cylinder><radius>0.4</radius><length>1.0</length></cylinder></geometry>
-          <material><script><name>Gazebo/Purple</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+          <material><script><name>Gazebo/WoodPallet</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+
+    <!-- Tall textured pillars for mid-range parallax corners. (Close
+         ones were tried and the rover clipped them; these stand well
+         clear of the default circle while still subtending good
+         texture. The floor carries the close-range load.) -->
+    <model name="pillar1"><static>true</static><pose>3.4 1.6 0.6 0 0 0.2</pose>
+      <link name="l"><collision name="c"><geometry><box><size>0.8 0.8 1.2</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.8 0.8 1.2</size></box></geometry>
+          <material><script><name>Gazebo/Steps</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="pillar2"><static>true</static><pose>-3.3 1.6 0.6 0 0 -0.15</pose>
+      <link name="l"><collision name="c"><geometry><box><size>0.8 0.8 1.2</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.8 0.8 1.2</size></box></geometry>
+          <material><script><name>Gazebo/CeilingTiled</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
+    <model name="pillar3"><static>true</static><pose>0 4.9 0.6 0 0 0.45</pose>
+      <link name="l"><collision name="c"><geometry><box><size>0.8 0.8 1.2</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.8 0.8 1.2</size></box></geometry>
+          <material><script><name>Gazebo/Road</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual></link></model>
 
     <!-- high-contrast poster boards on walls (VIO needs these) -->
     <model name="poster1"><static>true</static><pose>0 9.88 1.6 0 0 0</pose>
