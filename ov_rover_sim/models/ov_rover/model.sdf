@@ -3,14 +3,14 @@
     <link name='base_footprint'>
       <inertial>
         <pose>0 0 0.16 0 -0 0</pose>
-        <mass>2</mass>
+        <mass>2.5</mass>
         <inertia>
-          <ixx>0.03</ixx>
+          <ixx>0.04</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.03</iyy>
+          <iyy>0.04</iyy>
           <iyz>0</iyz>
-          <izz>0.04</izz>
+          <izz>0.05</izz>
         </inertia>
       </inertial>
       <collision name='base_footprint_fixed_joint_lump__base_link_collision'>
@@ -76,7 +76,7 @@
           <noise>
             <type>gaussian</type>
             <mean>0</mean>
-            <stddev>0.007</stddev>
+            <stddev>0.0</stddev>
           </noise>
         </camera>
         <plugin name='cam0_driver' filename='libgazebo_ros_camera.so'>
@@ -102,7 +102,7 @@
           <noise>
             <type>gaussian</type>
             <mean>0</mean>
-            <stddev>0.007</stddev>
+            <stddev>0.0</stddev>
           </noise>
         </camera>
         <plugin name='cam1_driver' filename='libgazebo_ros_camera.so'>
@@ -185,14 +185,14 @@
       <pose relative_to='wheel_front_left_joint'>0 0 0 0 -0 0</pose>
       <inertial>
         <pose>0 0 0 0 -0 0</pose>
-        <mass>0.2</mass>
+        <mass>0.35</mass>
         <inertia>
-          <ixx>0.00035</ixx>
+          <ixx>0.00061</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.00064</iyy>
+          <iyy>0.00112</iyy>
           <iyz>0</iyz>
-          <izz>0.00035</izz>
+          <izz>0.00061</izz>
         </inertia>
       </inertial>
       <collision name='wheel_front_left_link_collision'>
@@ -206,8 +206,8 @@
         <surface>
           <contact>
             <ode>
-              <kp>1e+06</kp>
-              <kd>100</kd>
+              <kp>1e+05</kp>
+              <kd>10</kd>
             </ode>
           </contact>
           <friction>
@@ -254,14 +254,14 @@
       <pose relative_to='wheel_front_right_joint'>0 0 0 0 -0 0</pose>
       <inertial>
         <pose>0 0 0 0 -0 0</pose>
-        <mass>0.2</mass>
+        <mass>0.35</mass>
         <inertia>
-          <ixx>0.00035</ixx>
+          <ixx>0.00061</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.00064</iyy>
+          <iyy>0.00112</iyy>
           <iyz>0</iyz>
-          <izz>0.00035</izz>
+          <izz>0.00061</izz>
         </inertia>
       </inertial>
       <collision name='wheel_front_right_link_collision'>
@@ -275,8 +275,8 @@
         <surface>
           <contact>
             <ode>
-              <kp>1e+06</kp>
-              <kd>100</kd>
+              <kp>1e+05</kp>
+              <kd>10</kd>
             </ode>
           </contact>
           <friction>
@@ -323,14 +323,14 @@
       <pose relative_to='wheel_rear_left_joint'>0 0 0 0 -0 0</pose>
       <inertial>
         <pose>0 0 0 0 -0 0</pose>
-        <mass>0.2</mass>
+        <mass>0.35</mass>
         <inertia>
-          <ixx>0.00035</ixx>
+          <ixx>0.00061</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.00064</iyy>
+          <iyy>0.00112</iyy>
           <iyz>0</iyz>
-          <izz>0.00035</izz>
+          <izz>0.00061</izz>
         </inertia>
       </inertial>
       <collision name='wheel_rear_left_link_collision'>
@@ -344,8 +344,8 @@
         <surface>
           <contact>
             <ode>
-              <kp>1e+06</kp>
-              <kd>100</kd>
+              <kp>1e+05</kp>
+              <kd>10</kd>
             </ode>
           </contact>
           <friction>
@@ -392,14 +392,14 @@
       <pose relative_to='wheel_rear_right_joint'>0 0 0 0 -0 0</pose>
       <inertial>
         <pose>0 0 0 0 -0 0</pose>
-        <mass>0.2</mass>
+        <mass>0.35</mass>
         <inertia>
-          <ixx>0.00035</ixx>
+          <ixx>0.00061</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.00064</iyy>
+          <iyy>0.00112</iyy>
           <iyz>0</iyz>
-          <izz>0.00035</izz>
+          <izz>0.00061</izz>
         </inertia>
       </inertial>
       <collision name='wheel_rear_right_link_collision'>
@@ -413,8 +413,8 @@
         <surface>
           <contact>
             <ode>
-              <kp>1e+06</kp>
-              <kd>100</kd>
+              <kp>1e+05</kp>
+              <kd>10</kd>
             </ode>
           </contact>
           <friction>
@@ -456,8 +456,8 @@
       <wheel_separation>0.44</wheel_separation>
       <wheel_diameter>0.16</wheel_diameter>
       <wheel_diameter>0.16</wheel_diameter>
-      <max_wheel_torque>5.0</max_wheel_torque>
-      <max_wheel_acceleration>3.0</max_wheel_acceleration>
+      <max_wheel_torque>1.0</max_wheel_torque>
+      <max_wheel_acceleration>2.0</max_wheel_acceleration>
       <command_topic>cmd_vel</command_topic>
       <publish_odom>1</publish_odom>
       <publish_odom_tf>1</publish_odom_tf>
