@@ -1,33 +1,43 @@
 #!/bin/bash
-# Gazebo rover test runner with visualization.
-# Defaults: auto-drive ON (teleop can override), rviz2 ON, gazebo GUI ON.
+# Gazebo rover test runner with OpenVINS visualization.
+# Defaults: auto-drive ON (circle), OpenVINS estimator ON, rviz2 ON, gazebo GUI ON.
 #
 # Driving modes are EXCLUSIVE (proven pattern): exactly one node owns /cmd_vel.
 # A second writer (even an idle keyboard node spamming zeros) would fight it.
+# Auto mode defaults to a gentle circle: VIO needs rotation plus
+# translation at all times, and stop-turns in place starve it of parallax.
 # Usage:
-#   ./gazebo_test.sh [--auto|--no-auto] [--rviz|--no-rviz] [--teleop|--teleop-only|--no-teleop] [--gui|--headless] [--dry-run]
+#   ./gazebo.sh [--auto|--no-auto] [--circle|--square] [--vins|--no-vins] [--rviz|--no-rviz] [--teleop|--teleop-only|--no-teleop] [--gui|--headless] [--dry-run]
 #
 # Examples:
-#   ./gazebo_test.sh                          # auto-drive + rviz + gui
-#   ./gazebo_test.sh --teleop                 # arrow-key manual driving (auto off)
-#   ./gazebo_test.sh --teleop-only            # same as --teleop
-#   ./gazebo_test.sh --headless --no-rviz     # server only (low resource / CI)
+#   ./gazebo.sh                          # circle + VIO + rviz + gui
+#   ./gazebo.sh --square                 # old stop-turn square loop
+#   ./gazebo.sh --teleop                 # arrow-key manual driving (auto off), VIO still runs
+#   ./gazebo.sh --teleop-only            # same as --teleop
+#   ./gazebo.sh --no-vins                # rover only, no estimator
+#   ./gazebo.sh --headless --no-rviz     # server only (low resource / CI)
 set -e
 
 AUTO=true
+MODE=circle
+VINS=true
 RVIZ=true
 GUI=true
 TELEOP=false
 DRYRUN=false
 
 usage() {
-  sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# //; s/^#//'
+  sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# //; s/^#//'
 }
 
 for arg in "$@"; do
   case "$arg" in
     --auto) AUTO=true ;;
     --no-auto) AUTO=false ;;
+    --circle) MODE=circle ;;
+    --square) MODE=square ;;
+    --vins) VINS=true ;;
+    --no-vins) VINS=false ;;
     --rviz|--rviz2) RVIZ=true ;;
     --no-rviz|--no-rviz2) RVIZ=false ;;
     --teleop|--teleop-only) AUTO=false; TELEOP=true ;;
@@ -60,7 +70,7 @@ cd "$WS"
 # on this machine is shared by every sim and keyboard node, and any stray
 # /cmd_vel writer there (even an idle keyboard spamming zeros) wins
 # intermittently and freezes the rover. Override with e.g.
-# ROVER_DOMAIN_ID=8 ./gazebo_test.sh to rejoin the default domain.
+# ROVER_DOMAIN_ID=8 ./gazebo.sh to rejoin the default domain.
 if [ -z "${ROVER_DOMAIN_ID:-}" ]; then
   ROVER_DOMAIN_ID=42
 fi
@@ -85,7 +95,7 @@ if [ ! -d "$WS/install/ov_rover_sim" ]; then
   source "$WS/install/setup.bash"
 fi
 
-LAUNCH_CMD="ros2 launch ov_rover_sim rover_sim.launch.py auto:=$AUTO rviz:=$RVIZ gui:=$GUI"
+LAUNCH_CMD="ros2 launch ov_rover_sim rover_sim.launch.py auto:=$AUTO mode:=$MODE rviz:=$RVIZ gui:=$GUI"
 TELEOP_CMD="ros2 run ov_rover_sim key_teleop.py"
 
 # Stale-server guard: a leftover gzserver fights the new run over the
@@ -141,13 +151,17 @@ if [ "$GUI" = false ] && ! have_display; then
   fi
 fi
 
+VINS_CONFIG="$WS/src/open_vins/ov_rover_sim/config/rover_stereo/estimator_config.yaml"
+
 echo "WS:     $WS"
 echo "Launch: $LAUNCH_CMD"
 echo "Teleop: $TELEOP (exclusive: auto is off while teleop runs)"
+echo "Vins:   $VINS (config: $VINS_CONFIG)"
 
 if [ "$DRYRUN" = true ]; then
   echo "(dry-run, not launching)"
   $TELEOP && echo "would also run: $TELEOP_CMD" || true
+  $VINS && echo "would also run: ros2 run ov_msckf run_subscribe_msckf \"$VINS_CONFIG\" --ros-args -r __ns:=/ov_msckf" || true
   exit 0
 fi
 
@@ -208,7 +222,10 @@ cleanup() {
   # killing them (or their X servers) breaks that session's cameras/sim.
   # Stale drivers/teleops of ours: a forgotten keyboard node spamming zero
   # /cmd_vel vetoes every other driver on this ROS domain (last-writer-wins).
-  pkill -f "auto_loop\.py|key_teleop\.py" 2>/dev/null || true
+  # align_frames.py normally exits on its own, but a mid-run Ctrl+C must
+  # still take it (and everything else) down so no zombie keeps the
+  # domain's topics alive after the terminal is gone.
+  pkill -f "auto_loop\.py|key_teleop\.py|align_frames\.py|run_subscribe_msckf" 2>/dev/null || true
   pkill -f "rviz2.*\.rviz" 2>/dev/null || true
   # gzserver ignores SIGTERM: escalate what is still ours, then SIGKILL it.
   sleep 2
@@ -217,11 +234,33 @@ cleanup() {
   sleep 2
   pkill -KILL -f "small_room.world" 2>/dev/null || true
 }
-trap cleanup INT TERM EXIT
+trap cleanup INT TERM HUP EXIT
 
 # Start simulation in background
 $LAUNCH_CMD 2>&1 | tee /tmp/gazebo_test.log &
 LAUNCH_PID=$!
+
+# Start the OpenVINS estimator on the rover stream (background). It needs
+# the sim up first (topics live; the rover holds still 15 s sim for clean
+# contact AND for a static estimator init). Start the estimator EARLY
+# (12 s wall) so it is up during the stillness: with no jerk-wait
+# (init_imu_thresh 0) it statically initializes on the still data
+# (exact zero velocity, gravity, stillness biases) instead of gambling
+# a dynamic init on planar motion (which dumps yaw rate into gyro bias
+# and fits rotation as sideways velocity). Driving starts after.
+# Namespace matches the ov_msckf launch file, so topics land under /ov_msckf/.
+if [ "$VINS" = true ]; then
+  if [ ! -f "$VINS_CONFIG" ]; then
+    echo "ERROR: estimator config not found: $VINS_CONFIG" >&2
+    exit 1
+  fi
+    echo "Waiting for the sim to come up, then starting OpenVINS..."
+    sleep 12
+    ros2 run ov_msckf run_subscribe_msckf "$VINS_CONFIG" --ros-args -r __ns:=/ov_msckf \
+      -p use_sim_time:=true > /tmp/ov_msckf.log 2>&1 &
+  VINS_PID=$!
+  echo "OpenVINS running (log: /tmp/ov_msckf.log, topics under /ov_msckf/)."
+fi
 
 if [ "$TELEOP" = true ]; then
   echo ""
@@ -233,7 +272,7 @@ if [ "$TELEOP" = true ]; then
   $TELEOP_CMD
 else
   echo ""
-  echo "Running. auto=$AUTO rviz=$RVIZ gui=$GUI"
+  echo "Running. auto=$AUTO mode=$MODE vins=$VINS rviz=$RVIZ gui=$GUI"
   echo "Manual override anytime: $TELEOP_CMD"
   wait $LAUNCH_PID
 fi
