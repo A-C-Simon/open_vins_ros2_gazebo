@@ -8,3 +8,7 @@ doxgen_generated
 *.swo
 doc
 .vscode
+# local colcon build outputs inside the package source tree
+ov_rover_sim/install/
+ov_rover_sim/log/
+__pycache__/
